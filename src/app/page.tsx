@@ -1,12 +1,18 @@
 "use client";
 
 import { Advocate } from "@/db/seed/advocates";
-import { useEffect, useState } from "react";
+import { useDebouncedState } from "@mantine/hooks";
+import { useEffect, useRef, useState } from "react";
 
 export default function Home() {
   const [advocates, setAdvocates] = useState<Advocate[]>([]);
   const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useDebouncedState(
+    "",
+    200,
+    { leading: true }
+  );
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/advocates").then((response) => {
@@ -18,7 +24,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const newSearchTerm = searchTerm.toUpperCase();
+    const newSearchTerm = debouncedSearchTerm.toUpperCase();
 
     const filteredAdvocates = advocates.filter((advocate) => {
       return (
@@ -26,22 +32,24 @@ export default function Home() {
         advocate.lastName.toUpperCase().includes(newSearchTerm) ||
         advocate.city.toUpperCase().includes(newSearchTerm) ||
         advocate.degree.toUpperCase().includes(newSearchTerm) ||
-        advocate.specialties
-          .map((s) => s.toUpperCase())
-          .includes(newSearchTerm) ||
+        advocate.specialties.findIndex((s) =>
+          s.toUpperCase().includes(newSearchTerm)
+        ) > -1 ||
         advocate.yearsOfExperience
           .toString()
           .toUpperCase()
-          .includes(newSearchTerm)
+          .includes(newSearchTerm) ||
+        advocate.phoneNumber.toString().includes(newSearchTerm)
       );
     });
 
     setFilteredAdvocates(filteredAdvocates);
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]);
 
   const onResetClick = () => {
-    setSearchTerm("");
+    setDebouncedSearchTerm("");
     setFilteredAdvocates(advocates);
+    searchInputRef.current!.value = "";
   };
 
   return (
@@ -51,17 +59,20 @@ export default function Home() {
       <br />
       <div>
         <p className="text-lg font-medium">Search</p>
-        <p className="text-sm text-gray-600">
-          Searching for: <span className="font-semibold">{searchTerm}</span>
-        </p>
         <input
+          ref={searchInputRef}
           className="border border-gray-400 rounded p-2"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          defaultValue={debouncedSearchTerm}
+          onChange={(e) => setDebouncedSearchTerm(e.target.value)}
         />
         <button
-          className="ml-2 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className={`ml-2 px-4 py-2 rounded text-white ${
+            debouncedSearchTerm
+              ? "bg-blue-500 hover:bg-blue-600"
+              : "bg-gray-400 cursor-not-allowed"
+          }`}
           onClick={onResetClick}
+          disabled={!debouncedSearchTerm}
         >
           Reset Search
         </button>
