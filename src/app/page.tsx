@@ -1,13 +1,14 @@
 "use client";
 
+import { Advocate } from "@/db/seed/advocates";
 import { useEffect, useState } from "react";
 
 export default function Home() {
-  const [advocates, setAdvocates] = useState([]);
-  const [filteredAdvocates, setFilteredAdvocates] = useState([]);
+  const [advocates, setAdvocates] = useState<Advocate[]>([]);
+  const [filteredAdvocates, setFilteredAdvocates] = useState<Advocate[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
 
   useEffect(() => {
-    console.log("fetching advocates...");
     fetch("/api/advocates").then((response) => {
       response.json().then((jsonResponse) => {
         setAdvocates(jsonResponse.data);
@@ -16,28 +17,34 @@ export default function Home() {
     });
   }, []);
 
-  const onChange = (e) => {
-    const searchTerm = e.target.value;
+  const onSearchChange = (e) => {
+    const value = e.target.value;
 
-    document.getElementById("search-term").innerHTML = searchTerm;
+    setSearchTerm(value);
 
-    console.log("filtering advocates...");
+    const newSearchTerm = value.toUpperCase();
+
     const filteredAdvocates = advocates.filter((advocate) => {
       return (
-        advocate.firstName.includes(searchTerm) ||
-        advocate.lastName.includes(searchTerm) ||
-        advocate.city.includes(searchTerm) ||
-        advocate.degree.includes(searchTerm) ||
-        advocate.specialties.includes(searchTerm) ||
-        advocate.yearsOfExperience.includes(searchTerm)
+        advocate.firstName.toUpperCase().includes(newSearchTerm) ||
+        advocate.lastName.toUpperCase().includes(newSearchTerm) ||
+        advocate.city.toUpperCase().includes(newSearchTerm) ||
+        advocate.degree.toUpperCase().includes(newSearchTerm) ||
+        advocate.specialties
+          .map((s) => s.toUpperCase())
+          .includes(newSearchTerm) ||
+        advocate.yearsOfExperience
+          .toString()
+          .toUpperCase()
+          .includes(newSearchTerm)
       );
     });
 
     setFilteredAdvocates(filteredAdvocates);
   };
 
-  const onClick = () => {
-    console.log(advocates);
+  const onResetClick = () => {
+    setSearchTerm("");
     setFilteredAdvocates(advocates);
   };
 
@@ -49,34 +56,39 @@ export default function Home() {
       <div>
         <p>Search</p>
         <p>
-          Searching for: <span id="search-term"></span>
+          Searching for: <span>{searchTerm}</span>
         </p>
-        <input style={{ border: "1px solid black" }} onChange={onChange} />
-        <button onClick={onClick}>Reset Search</button>
+        <input
+          style={{ border: "1px solid black" }}
+          onChange={onSearchChange}
+        />
+        <button onClick={onResetClick}>Reset Search</button>
       </div>
       <br />
       <br />
       <table>
         <thead>
-          <th>First Name</th>
-          <th>Last Name</th>
-          <th>City</th>
-          <th>Degree</th>
-          <th>Specialties</th>
-          <th>Years of Experience</th>
-          <th>Phone Number</th>
+          <tr>
+            <th>First Name</th>
+            <th>Last Name</th>
+            <th>City</th>
+            <th>Degree</th>
+            <th>Specialties</th>
+            <th>Years of Experience</th>
+            <th>Phone Number</th>
+          </tr>
         </thead>
         <tbody>
           {filteredAdvocates.map((advocate) => {
             return (
-              <tr>
+              <tr key={advocate.id}>
                 <td>{advocate.firstName}</td>
                 <td>{advocate.lastName}</td>
                 <td>{advocate.city}</td>
                 <td>{advocate.degree}</td>
                 <td>
                   {advocate.specialties.map((s) => (
-                    <div>{s}</div>
+                    <div key={advocate.id + s}>{s}</div>
                   ))}
                 </td>
                 <td>{advocate.yearsOfExperience}</td>
